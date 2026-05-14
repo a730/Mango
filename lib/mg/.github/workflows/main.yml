@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+    container:
+      image: crystallang/crystal:1.0.0-alpine
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install system dependencies
+      run: apk add --no-cache sqlite-dev rsync
+    - name: Install shards
+      run: shards install
+    - name: Test
+      run: crystal spec
+    - name: Ameba
+      run: ./bin/ameba

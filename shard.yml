@@ -21,8 +21,7 @@ dependencies:
     github: crystal-lang/crystal-sqlite3
   baked_file_system:
     github: schovi/baked_file_system
-  archive:
-    github: hkalexling/archive.cr
+  # archive is vendored at lib/archive/
   clim:
     github: at-grandpa/clim
   duktape:
@@ -37,7 +36,6 @@ dependencies:
   tallboy:
     github: epoch/tallboy
     branch: master
-  mg:
-   github: hkalexling/mg
+  # mg is vendored at lib/mg/
   sanitize:
     github: hkalexling/sanitize
