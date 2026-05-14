@@ -82,12 +82,11 @@ Requires **Crystal 1.16.3+** and **Node.js 20+**.
 git clone https://github.com/a730/Mango.git
 cd Mango
 
+# Build vendored image_size native extensions
+cd lib/image_size && make && cd ../..
+
 # Install Crystal dependencies
 shards install
-
-# Install Node dependencies + build frontend
-yarn
-yarn uglify
 
 # Build Mango binary
 crystal build src/mango.cr --release --progress
@@ -96,6 +95,33 @@ crystal build src/mango.cr --release --progress
 cd anime-middleware
 npm install
 cd ..
+```
+
+The `lib/image_size`, `lib/mg`, and `lib/archive` shards are vendored with
+patches for Crystal 1.16 compatibility. Other shards are fetched by
+`shards install`.
+
+## Docker (GHCR)
+
+Pre-built images are available on [GitHub Container Registry](https://github.com/a730/Mango/pkgs/container/mango):
+
+- `ghcr.io/a730/mango:latest` — Mango server
+- `ghcr.io/a730/mango-anime-middleware:latest` — Anime streaming middleware
+
+The docker-compose.yml pulls these by default. Images are automatically rebuilt
+on every push to `master`.
+
+### Local Docker build
+
+```bash
+docker compose build    # build from source (takes ~10 min)
+docker compose up -d    # or pull pre-built images from GHCR
+```
+
+Override images via `.env`:
+```
+MANGO_IMAGE=ghcr.io/your-org/mango:latest
+MIDDLEWARE_IMAGE=ghcr.io/your-org/mango-anime-middleware:latest
 ```
 
 ## Usage
