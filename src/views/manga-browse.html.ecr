@@ -1,0 +1,71 @@
+<div x-data="mangaBrowseComponent()" x-init="init()" x-cloak>
+  <div class="uk-grid-small" uk-grid style="margin-bottom:40px;">
+    <div class="uk-container uk-text-center" x-show="plugins.length === 0" style="width:100%">
+      <h2>No Manga Plugins Found</h2>
+      <p>We couldn't find any manga plugins in the directory <code><%= Config.current.plugin_path %></code>.</p>
+      <p>Manga plugins must have <code>"capability": "manga"</code> in their <code>info.json</code>.</p>
+    </div>
+
+    <div x-show="plugins.length > 0" style="width:100%">
+      <h2 class="uk-title">Browse Manga</h2>
+      <p class="uk-text-muted">Search for manga from ComicK, MangaDex, and more.</p>
+
+      <div class="uk-flex uk-flex-middle uk-margin" style="gap: 8px;">
+        <select class="uk-select uk-width-auto" x-model="pid" @change="pluginChanged()">
+          <template x-for="p in plugins" :key="p.id">
+            <option :value="p.id" x-text="p.title"></option>
+          </template>
+        </select>
+        <input class="uk-input uk-width-expand" type="text" placeholder="Search manga..."
+               x-model="query" @keyup.enter="search()">
+        <button class="uk-button uk-button-primary" @click="search()" :disabled="searching">
+          <span x-show="!searching">Search</span>
+          <span x-show="searching" uk-spinner></span>
+        </button>
+      </div>
+
+      <div x-show="results && results.length > 0" class="uk-margin-top">
+        <div class="uk-grid-small uk-child-width-1-2 uk-child-width-1-4@s uk-child-width-1-5@m uk-child-width-1-6@l" uk-grid>
+          <template x-for="manga in results" :key="manga.id">
+            <div>
+              <div class="uk-card uk-card-default uk-card-hover uk-card-small" @click="selectManga(manga)">
+                <div class="uk-card-media-top" style="aspect-ratio: 3/4; overflow: hidden; background: #f0f0f0;">
+                  <img :src="manga.cover_url" :alt="manga.title"
+                       style="width: 100%; height: 100%; object-fit: cover;"
+                       @error="e => e.target.src = '<%= base_url %>img/no-cover.png'">
+                </div>
+                <div class="uk-card-body uk-padding-small">
+                  <h5 class="uk-card-title uk-text-small" x-text="manga.title"></h5>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <div x-show="results && results.length === 0 && !searching" class="uk-text-center uk-margin-large-top uk-text-muted">
+        <p>No manga found. Try a different search term.</p>
+      </div>
+
+      <div x-show="selectedManga" class="uk-margin-top">
+        <hr>
+        <h3 x-text="'Chapters: ' + selectedManga.title"></h3>
+        <div x-show="loadingChapters" class="uk-text-center uk-margin">
+          <span uk-spinner></span> Loading chapters...
+        </div>
+        <ul class="uk-list uk-list-divider" x-show="chapters && chapters.length > 0">
+          <template x-for="ch in chapters" :key="ch.id">
+            <li>
+              <a href="#" @click.prevent="readChapter(ch)" class="uk-link-reset">
+                <span x-text="ch.title"></span>
+                <span class="uk-text-muted uk-text-small" x-text="' (' + ch.pages + ' pages)'"></span>
+              </a>
+            </li>
+          </template>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="<%= base_url %>js/manga-browse.js"></script>

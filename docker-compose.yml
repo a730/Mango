@@ -1,15 +1,60 @@
-version: '3'
-
 services:
   mango:
     container_name: mango
+    image: mango:latest
     build:
       context: .
       dockerfile: ./Dockerfile
-    expose:
-      - ${PORT}
     ports:
-      - "${PORT}:9000"
+      - "${PORT:-9000}:9000"
     volumes:
-      - ${MAIN_DIRECTORY_PATH}:/root/mango
-      - ${CONFIG_DIRECTORY_PATH}:/root/.config/mango
+      - ${MAIN_DIRECTORY_PATH:-./data/mango}:/home/mango/mango
+      - ${CONFIG_DIRECTORY_PATH:-./data/config}:/home/mango/.config/mango
+    environment:
+      - PORT=${PORT:-9000}
+    depends_on:
+      - anime-middleware
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - NET_BIND_SERVICE
+      - FOWNER
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "1.0"
+    restart: unless-stopped
+    networks:
+      - mango-net
+
+  anime-middleware:
+    container_name: anime-middleware
+    image: mango-anime-middleware:latest
+    build:
+      context: ./anime-middleware
+      dockerfile: Dockerfile
+    expose:
+      - "3456"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+    restart: unless-stopped
+    networks:
+      - mango-net
+
+networks:
+  mango-net:
+    driver: bridge

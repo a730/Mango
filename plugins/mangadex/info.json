@@ -1,0 +1,12 @@
+{
+  "id": "mangadex",
+  "title": "MangaDex (Manga)",
+  "placeholder": "Search manga (MangaDex)...",
+  "api_version": 3,
+  "capability": "manga",
+  "wait_seconds": 1,
+  "settings": {
+    "middleware_base_url": "http://localhost:3456",
+    "source": "mangadex"
+  }
+}

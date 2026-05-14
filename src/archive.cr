@@ -30,7 +30,7 @@ class ArchiveFile
     ary = [] of Compress::Zip::File::Entry | Archive::Entry
     @archive_file.entries.map do |e|
       if (e.is_a? Compress::Zip::File::Entry && e.file?) ||
-         (e.is_a? Archive::Entry && e.info.file?)
+         (e.is_a? Archive::Entry && e.file_type?)
         ary.push e
       end
     end

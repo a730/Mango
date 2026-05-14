@@ -17,6 +17,24 @@ class Plugin
   class SyntaxError < Error
   end
 
+  enum Capability
+    Manga
+    Anime
+
+    def self.from_string(str : String) : Capability
+      case str.downcase
+      when "anime"
+        Anime
+      else
+        Manga
+      end
+    end
+
+    def to_json(json : JSON::Builder)
+      json.string to_s.downcase
+    end
+  end
+
   struct Info
     include JSON::Serializable
 
@@ -26,6 +44,7 @@ class Plugin
     getter wait_seconds = 0u64
     getter version = 0u64
     getter settings = {} of String => String?
+    getter capability : Capability = Capability::Manga
     getter dir : String
 
     @[JSON::Field(ignore: true)]
@@ -47,6 +66,7 @@ class Plugin
         {% end %}
         @wait_seconds = @json["wait_seconds"].as_i.to_u64
         @version = @json["api_version"]?.try(&.as_i.to_u64) || 1u64
+        @capability = Capability.from_string(@json["capability"]?.try(&.as_s) || "manga")
 
         if @version > 1 && (settings_hash = @json["settings"]?.try &.as_h?)
           settings_hash.each do |k, v|
@@ -126,6 +146,13 @@ class Plugin
   def self.list
     self.build_info_ary
     @@info_ary.map do |m|
+      {id: m.id, title: m.title, capability: m.capability.to_s.downcase}
+    end
+  end
+
+  def self.list_by_capability(cap : Capability)
+    self.build_info_ary
+    @@info_ary.select(&.capability.== cap).map do |m|
       {id: m.id, title: m.title}
     end
   end
@@ -195,6 +222,29 @@ class Plugin
     end
 
     eval File.read @js_path
+
+    # Validate required functions based on capability
+    case info.capability
+    when Capability::Manga
+      if info.version > 1
+        unless eval_exists?("searchManga")
+          raise Error.new "Manga plugins targeting API v2+ must define " \
+                          "'searchManga' function"
+        end
+      end
+      unless eval_exists?("listChapters") && eval_exists?("selectChapter")
+        raise Error.new "Manga plugins must define 'listChapters' and " \
+                        "'selectChapter' functions"
+      end
+    when Capability::Anime
+      unless eval_exists?("searchAnime") && eval_exists?("listEpisodes")
+        raise Error.new "Anime plugins must define 'searchAnime' and " \
+                        "'listEpisodes' functions"
+      end
+      unless eval_exists?("getStreamSources")
+        raise Error.new "Anime plugins must define 'getStreamSources' function"
+      end
+    end
   end
 
   macro check_fields(ary)
@@ -225,10 +275,17 @@ class Plugin
   end
 
   def can_subscribe? : Bool
-    info.version > 1 && eval_exists?("newChapters")
+    info.capability.manga? && info.version > 1 && eval_exists?("newChapters")
+  end
+
+  private def ensure_capability!(cap : Capability)
+    unless info.capability == cap
+      raise Error.new "Plugin '#{info.id}' is not a #{cap.to_s.downcase} plugin"
+    end
   end
 
   def search_manga(query : String)
+    ensure_capability! Capability::Manga
     if info.version == 1
       raise Error.new "Manga searching is only available for plugins " \
                       "targeting API v2 or above"
@@ -245,6 +302,7 @@ class Plugin
   end
 
   def list_chapters(query : String)
+    ensure_capability! Capability::Manga
     json = eval_json "listChapters('#{query}')"
     begin
       if info.version > 1
@@ -278,6 +336,7 @@ class Plugin
   end
 
   def select_chapter(id : String)
+    ensure_capability! Capability::Manga
     json = eval_json "selectChapter('#{id}')"
     begin
       if info.version > 1
@@ -296,6 +355,7 @@ class Plugin
   end
 
   def next_page
+    ensure_capability! Capability::Manga
     json = eval_json "nextPage()"
     return if json.size == 0
     begin
@@ -307,6 +367,7 @@ class Plugin
   end
 
   def new_chapters(manga_id : String, after : Int64)
+    ensure_capability! Capability::Manga
     # Converting standard timestamp to milliseconds so plugins can easily do
     #   `new Date(ms_timestamp)` in JS.
     json = eval_json "newChapters('#{manga_id}', #{after * 1000})"
@@ -318,6 +379,76 @@ class Plugin
       raise Error.new e.message
     end
     json
+  end
+
+  # ---- Anime capability methods ----
+
+  def assert_anime_type(obj : JSON::Any)
+    obj["id"].as_s && obj["title"].as_s
+  rescue e
+    raise Error.new "Missing required fields in the Anime type"
+  end
+
+  def assert_episode_type(obj : JSON::Any)
+    obj["id"].as_s && obj["number"].as_i
+  rescue e
+    raise Error.new "Missing required fields in the Episode type"
+  end
+
+  def assert_stream_source_type(obj : JSON::Any)
+    obj["url"].as_s && obj["quality"].as_s && obj["format"].as_s
+  rescue e
+    raise Error.new "Missing required fields in the StreamSource type"
+  end
+
+  def search_anime(query : String)
+    ensure_capability! Capability::Anime
+    json = eval_json "searchAnime('#{query}')"
+    begin
+      json.as_a.each do |obj|
+        assert_anime_type obj
+      end
+    rescue e
+      raise Error.new e.message
+    end
+    json
+  end
+
+  def list_episodes(source_id : String)
+    ensure_capability! Capability::Anime
+    json = eval_json "listEpisodes('#{source_id}')"
+    begin
+      json.as_a.each do |obj|
+        assert_episode_type obj
+      end
+    rescue e
+      raise Error.new e.message
+    end
+    json
+  end
+
+  def get_stream_sources(episode_id : String)
+    ensure_capability! Capability::Anime
+    json = eval_json "getStreamSources('#{episode_id}')"
+    begin
+      json.as_a.each do |obj|
+        assert_stream_source_type obj
+      end
+    rescue e
+      raise Error.new e.message
+    end
+    json
+  end
+
+  def get_subtitles(episode_id : String)
+    ensure_capability! Capability::Anime
+    json = eval_json "getSubtitles('#{episode_id}')"
+    json
+  rescue e : Duktape::ReferenceError
+    # Subtitles are optional
+    JSON.parse "[]"
+  rescue e
+    raise Error.new e.message
   end
 
   def eval(str)

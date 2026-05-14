@@ -1,0 +1,12 @@
+{
+  "id": "tier3",
+  "title": "AnimeKai (via Middleware)",
+  "placeholder": "Search anime (AnimeKai)...",
+  "api_version": 3,
+  "capability": "anime",
+  "wait_seconds": 1,
+  "settings": {
+    "middleware_base_url": "http://localhost:3456",
+    "source": "animekai"
+  }
+}

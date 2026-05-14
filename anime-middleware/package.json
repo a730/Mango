@@ -1,0 +1,17 @@
+{
+  "name": "anime-middleware",
+  "version": "1.0.0",
+  "description": "Anime streaming middleware for Mango - resolves direct m3u8 URLs from anime sites",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "@consumet/extensions": "^1.8.8",
+    "axios": "^1.7.0",
+    "cheerio": "^1.0.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.0"
+  }
+}

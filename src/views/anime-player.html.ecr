@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+
+<% page = "Anime Player" %>
+<%= render_component "head" %>
+
+<body style="background: black;">
+  <div x-data="animePlayerComponent()" x-init="init('<%= anime_id %>', '<%= plugin_id %>', '<%= anime_title %>')">
+    <div class="uk-position-top uk-padding-small" style="z-index: 100;">
+      <a class="uk-button uk-button-default uk-button-small" href="<%= base_url %>anime">
+        <span uk-icon="arrow-left"></span> Back
+      </a>
+      <span class="uk-text-middle uk-margin-left uk-text-white" x-text="animeTitle"></span>
+    </div>
+
+    <div id="player-container" style="width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center;">
+      <div x-show="loading" class="uk-text-center uk-text-white">
+        <div uk-spinner class="uk-margin-bottom"></div>
+        <p x-text="loadingMsg"></p>
+      </div>
+
+      <video id="anime-video" x-show="!loading" x-cloak
+             style="max-width: 100vw; max-height: 100vh;"
+             controls autoplay
+             x-ref="video">
+      </video>
+    </div>
+
+    <div class="uk-position-bottom uk-padding" style="z-index: 100;">
+      <div class="uk-flex uk-flex-center uk-flex-middle" x-show="!loading" x-cloak>
+        <button class="uk-button uk-button-default uk-button-small uk-margin-small-right" @click="prevEpisode()" :disabled="currentEpisodeIndex <= 0">
+          <span uk-icon="chevron-left"></span> Previous
+        </button>
+        <select class="uk-select uk-width-auto uk-margin-small-right" x-model="currentEpisodeIndex" @change="episodeSelected()">
+          <template x-for="(ep, idx) in episodes" :key="ep.id">
+            <option :value="idx" x-text="'Ep ' + ep.episode_number + (ep.title ? ' - ' + ep.title : '')"></option>
+          </template>
+        </select>
+        <button class="uk-button uk-button-default uk-button-small uk-margin-small-right" @click="nextEpisode()" :disabled="currentEpisodeIndex >= episodes.length - 1">
+          Next <span uk-icon="chevron-right"></span>
+        </button>
+
+        <select class="uk-select uk-width-auto" x-model="selectedQuality" @change="qualityChanged()" x-show="qualities.length > 0">
+          <template x-for="q in qualities" :key="q">
+            <option :value="q" x-text="q"></option>
+          </template>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script>
+    const base_url = "<%= base_url %>";
+  </script>
+  <%= render_component "uikit" %>
+  <script src="<%= base_url %>js/alert.js"></script>
+  <script src="<%= base_url %>js/anime-player.js"></script>
+</body>
+
+<style>
+  .uk-text-white { color: white; }
+  .uk-select { background: rgba(255,255,255,0.9); }
+  video::-webkit-media-controls { z-index: 200; }
+</style>
+
+</html>

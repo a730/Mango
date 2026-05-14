@@ -1,4 +1,6 @@
 struct MainRouter
+  @@login_limiter = RateLimiter.new
+
   def initialize
     get "/login" do |env|
       base_url = Config.current.base_url
@@ -17,10 +19,18 @@ struct MainRouter
 
     post "/login" do |env|
       begin
+        ip = env.request.remote_address.try { |a| a.to_s.split(":").first } || env.request.headers["X-Forwarded-For"]? || "unknown"
+        unless @@login_limiter.allowed?(ip)
+          env.response.status_code = 429
+          send_text env, "Too many login attempts. Try again later."
+          next
+        end
+
         username = env.params.body["username"]
         password = env.params.body["password"]
         token = Storage.default.verify_user(username, password).not_nil!
 
+        @@login_limiter.reset ip
         env.session.string "token", token
 
         callback = env.session.string? "callback"

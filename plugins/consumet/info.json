@@ -1,0 +1,12 @@
+{
+  "id": "consumet",
+  "title": "Consumet (Multi-Provider)",
+  "placeholder": "Search anime (GogoAnime, Zoro, 9Anime)...",
+  "api_version": 3,
+  "capability": "anime",
+  "wait_seconds": 1,
+  "settings": {
+    "api_base_url": "https://api.consumet.org",
+    "provider": "gogoanime"
+  }
+}

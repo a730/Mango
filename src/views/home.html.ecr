@@ -76,8 +76,35 @@
 
 <%- end -%>
 
+<!-- Anime Continue Watching Section -->
+<div x-data="animeHomeComponent()" x-init="init()" x-cloak>
+  <template x-if="continueWatching.length > 0">
+    <div>
+      <h2 class="uk-title home-headings">Continue Watching</h2>
+      <div class="uk-child-width-1-4@m uk-child-width-1-2" uk-grid>
+        <template x-for="item in continueWatching" :key="item.anime_id">
+          <div>
+            <a class="uk-link-reset" :href="`${base_url}anime/watch/${item.anime_id}`">
+              <div class="uk-card uk-card-default uk-card-hover">
+                <div class="uk-card-media-top">
+                  <img uk-img :data-src="item.cover_url" style="width:100%;height:200px;object-fit:cover;">
+                </div>
+                <div class="uk-card-body">
+                  <h3 class="uk-card-title break-word uk-margin-remove-bottom" x-text="item.title"></h3>
+                  <p class="uk-text-meta" x-text="item.completed ? 'Completed' : 'In Progress'"></p>
+                </div>
+              </div>
+            </a>
+          </div>
+        </template>
+      </div>
+    </div>
+  </template>
+</div>
+
 <% content_for "script" do %>
   <%= render_component "dots" %>
   <script src="<%= base_url %>js/alert.js"></script>
   <script src="<%= base_url %>js/title.js"></script>
+  <script src="<%= base_url %>js/anime-home.js"></script>
 <% end %>

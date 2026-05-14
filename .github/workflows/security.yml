@@ -1,0 +1,87 @@
+name: Security
+
+on:
+  push:
+    branches: [master, dev]
+    paths:
+      - "Dockerfile*"
+      - "docker-compose*"
+      - "anime-middleware/Dockerfile*"
+      - ".github/workflows/security.yml"
+  pull_request:
+    branches: [master]
+    paths:
+      - "Dockerfile*"
+      - "docker-compose*"
+      - "anime-middleware/Dockerfile*"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check hardcoded secrets in docker-compose
+        run: |
+          echo "::group::Scanning for hardcoded secrets"
+          issues=0
+          for file in docker-compose.yml; do
+            if [ -f "$file" ]; then
+              # Match lines with password/secret/apikey/auth that use literal values (not ${VAR})
+              matches=$(grep -nE 'password:|secret:|api_key:|auth_token:|api-key:' "$file" | grep -v '\${' || true)
+              if [ -n "$matches" ]; then
+                echo "::warning file=$file::Possible hardcoded secret found"
+                echo "$matches"
+                issues=$((issues+1))
+              fi
+            fi
+          done
+          echo "::endgroup::"
+
+      - name: Check healthchecks
+        run: |
+          echo "::group::Checking HEALTHCHECK in Dockerfiles"
+          for file in Dockerfile anime-middleware/Dockerfile; do
+            if [ -f "$file" ]; then
+              if grep -q "HEALTHCHECK" "$file"; then
+                echo "✅ $file has HEALTHCHECK"
+              else
+                echo "::warning file=$file::Missing HEALTHCHECK"
+              fi
+            fi
+          done
+          echo "::endgroup::"
+
+      - name: Check non-root user in Dockerfiles
+        run: |
+          echo "::group::Checking non-root USER in Dockerfiles"
+          for file in Dockerfile anime-middleware/Dockerfile; do
+            if [ -f "$file" ]; then
+              if grep -q "^USER " "$file"; then
+                echo "✅ $file has non-root USER"
+              else
+                echo "::warning file=$file::Missing non-root USER directive"
+              fi
+            fi
+          done
+          echo "::endgroup::"
+
+      - name: Check docker-compose security options
+        run: |
+          echo "::group::Checking docker-compose security hardening"
+          if grep -q "no-new-privileges" docker-compose.yml; then
+            echo "✅ no-new-privileges set"
+          else
+            echo "::warning file=docker-compose.yml::Missing security_opt: no-new-privileges"
+          fi
+          if grep -q "cap_drop:" docker-compose.yml; then
+            echo "✅ cap_drop present"
+          else
+            echo "::warning file=docker-compose.yml::Missing cap_drop: ALL"
+          fi
+          if grep -q "deploy:" docker-compose.yml; then
+            echo "✅ deploy.resources.limits present"
+          else
+            echo "::warning file=docker-compose.yml::Missing deploy.resources.limits"
+          fi
+          echo "::endgroup::"

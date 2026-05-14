@@ -1,0 +1,11 @@
+{
+  "id": "hianime",
+  "title": "HiAnime",
+  "placeholder": "Search anime (HiAnime)...",
+  "api_version": 3,
+  "capability": "anime",
+  "wait_seconds": 1,
+  "settings": {
+    "api_base_url": "https://4animo.xyz/api/v2"
+  }
+}

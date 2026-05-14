@@ -24,6 +24,8 @@ class Server
     ReaderRouter.new
     APIRouter.new
     OPDSRouter.new
+    StreamRouter.new
+    MangaRouter.new
 
     {% for path in %w(/api/* /uploads/* /img/*) %}
       options {{path}} do |env|
@@ -32,8 +34,8 @@ class Server
       end
     {% end %}
 
-    static_headers do |response|
-      response.headers.add("Access-Control-Allow-Origin", "*")
+    static_headers do |env, file_path, filestat|
+      env.response.headers.add("Access-Control-Allow-Origin", "*")
     end
 
     Kemal.config.logging = false

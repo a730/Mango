@@ -23,6 +23,7 @@ class Config
     "default_username"                    => "",
     "auth_proxy_header_name"              => "",
     "plugin_update_interval_hours"        => 24,
+    "proxy_allowed_domains"               => "",
   }
 
   include YAML::Serializable

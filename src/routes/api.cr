@@ -1,9 +1,11 @@
 require "../upload"
 require "koa"
 require "digest"
+require "../util/rate_limiter"
 
 struct APIRouter
   @@api_json : String?
+  @@login_limiter = RateLimiter.new
 
   API_VERSION = "0.1.0"
 
@@ -64,7 +66,7 @@ struct APIRouter
     Koa.schema "filter", {
       "key"   => String,
       "type"  => String,
-      "value" => String | Int32 | Int64 | Float32,
+      "value" => String,
     }
 
     Koa.schema "subscription", {
@@ -94,10 +96,23 @@ struct APIRouter
     Koa.tag "users"
     post "/api/login" do |env|
       begin
+        ip = env.request.remote_address.try { |a| a.to_s.split(":").first } || env.request.headers["X-Forwarded-For"]? || "unknown"
+        unless @@login_limiter.allowed?(ip)
+          env.response.status_code = 429
+          remaining = @@login_limiter.remaining(ip)
+          send_json env, {
+            "success"  => false,
+            "error"    => "Too many login attempts. Try again later.",
+            "retry_after" => 60,
+          }.to_json
+          next
+        end
+
         username = env.params.json["username"].as String
         password = env.params.json["password"].as String
         token = Storage.default.verify_user(username, password).not_nil!
 
+        @@login_limiter.reset ip
         env.session.string "token", token
         send_json env, {
           "success"    => true,
@@ -833,19 +848,27 @@ struct APIRouter
     Koa.describe "Returns a list of available plugins"
     Koa.tags ["admin", "downloader"]
     Koa.query "plugin", schema: String
+    Koa.query "capability", desc: "Filter by capability (manga or anime)"
     Koa.response 200, schema: {
       "success" => Bool,
       "error"   => String?,
       "plugins" => [{
-        "id"    => String,
-        "title" => String,
+        "id"         => String,
+        "title"      => String,
+        "capability" => String?,
       }],
     }
     get "/api/admin/plugin" do |env|
       begin
+        cap = env.params.query["capability"]?
+        plugins = if cap
+                    Plugin.list_by_capability Plugin::Capability.from_string(cap)
+                  else
+                    Plugin.list
+                  end
         send_json env, {
           "success" => true,
-          "plugins" => Plugin.list,
+          "plugins" => plugins,
         }.to_json
       rescue e
         Logger.error e

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+
+<% page = "Manga Reader" %>
+<%= render_component "head" %>
+
+<body style="background: #1a1a1a;">
+  <div x-data="mangaReaderComponent()" x-init="init()">
+    <div class="uk-position-top uk-padding-small" style="z-index: 100;">
+      <a class="uk-button uk-button-default uk-button-small" href="<%= base_url %>manga">
+        <span uk-icon="arrow-left"></span> Back
+      </a>
+      <span class="uk-text-middle uk-margin-left uk-text-white" x-text="mangaTitle"></span>
+      <span class="uk-text-muted uk-text-small uk-margin-left" x-text="'Page ' + currentPage + ' / ' + totalPages"></span>
+    </div>
+
+    <div id="reader-container" style="width: 100vw; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding-top: 60px;">
+      <div x-show="loading" class="uk-text-center uk-text-white uk-margin-large-top">
+        <div uk-spinner class="uk-margin-bottom"></div>
+        <p x-text="loadingMsg"></p>
+      </div>
+
+      <div x-show="!loading" x-cloak id="pages-container" style="width: 100%; max-width: 800px;">
+        <template x-for="(page, idx) in pages" :key="idx">
+          <div class="page-wrapper" style="width: 100%; margin-bottom: 4px;">
+            <img :src="page.url"
+                 :alt="'Page ' + (idx + 1)"
+                 style="width: 100%; height: auto; display: block;"
+                 @load="onPageLoaded()"
+                 @error="page.failed = true">
+          </div>
+        </template>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const base_url = "<%= base_url %>";
+    const plugin_id = "<%= plugin_id %>";
+    const chapter_id = "<%= chapter_id %>";
+    const manga_title = "<%= manga_title %>";
+  </script>
+  <%= render_component "uikit" %>
+  <script src="<%= base_url %>js/manga-reader.js"></script>
+</body>
+
+</html>

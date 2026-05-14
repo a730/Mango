@@ -633,6 +633,175 @@ class Storage
     count
   end
 
+  # ---- Anime storage methods ----
+
+  def save_anime(id : String, title : String, source_id : String,
+                 plugin_id : String, cover_url : String?,
+                 metadata : String?)
+    MainFiber.run do
+      get_db do |db|
+        db.exec "insert or replace into anime values (?, ?, ?, ?, ?, ?)",
+          id, title, source_id, plugin_id, cover_url, metadata
+      end
+    end
+  end
+
+  def get_anime(id : String) : NamedTuple(id: String, title: String, source_id: String, plugin_id: String, cover_url: String?, metadata: String?)?
+    result = nil
+    MainFiber.run do
+      get_db do |db|
+        db.query_one? "select id, title, source_id, plugin_id, cover_url, metadata from anime where id = (?)", id do |rs|
+          result = {
+            id: rs.read(String),
+            title: rs.read(String),
+            source_id: rs.read(String),
+            plugin_id: rs.read(String),
+            cover_url: rs.read(String?),
+            metadata: rs.read(String?),
+          }
+        end
+      end
+    end
+    result
+  end
+
+  def list_anime : Array(NamedTuple(id: String, title: String, source_id: String, plugin_id: String, cover_url: String?))
+    results = [] of NamedTuple(id: String, title: String, source_id: String, plugin_id: String, cover_url: String?)
+    MainFiber.run do
+      get_db do |db|
+        db.query "select id, title, source_id, plugin_id, cover_url from anime" do |rs|
+          rs.each do
+            results << {
+              id: rs.read(String),
+              title: rs.read(String),
+              source_id: rs.read(String),
+              plugin_id: rs.read(String),
+              cover_url: rs.read(String?),
+            }
+          end
+        end
+      end
+    end
+    results
+  end
+
+  def delete_anime(id : String)
+    MainFiber.run do
+      get_db do |db|
+        db.exec "delete from anime where id = (?)", id
+      end
+    end
+  end
+
+  def find_anime_by_source(source_id : String, plugin_id : String)
+    result = nil
+    MainFiber.run do
+      get_db do |db|
+        db.query_one? "select id from anime where source_id = (?) and plugin_id = (?)", source_id, plugin_id do |rs|
+          result = rs.read(String)
+        end
+      end
+    end
+    result
+  end
+
+  def save_anime_episode(id : String, anime_id : String, episode_number : Int32,
+                         title : String?, metadata : String?, thumbnail : String?)
+    MainFiber.run do
+      get_db do |db|
+        db.exec "insert or replace into anime_episodes values (?, ?, ?, ?, ?, ?)",
+          id, anime_id, episode_number, title, metadata, thumbnail
+      end
+    end
+  end
+
+  def list_anime_episodes(anime_id : String)
+    results = [] of NamedTuple(id: String, episode_number: Int32, title: String?, thumbnail: String?)
+    MainFiber.run do
+      get_db do |db|
+        db.query "select id, episode_number, title, thumbnail from anime_episodes where anime_id = (?) order by episode_number", anime_id do |rs|
+          rs.each do
+            results << {
+              id: rs.read(String),
+              episode_number: rs.read(Int32),
+              title: rs.read(String?),
+              thumbnail: rs.read(String?),
+            }
+          end
+        end
+      end
+    end
+    results
+  end
+
+  def save_anime_progress(username : String, anime_id : String,
+                          episode_id : String?, timestamp : Float64)
+    now = Time.utc.to_unix
+    MainFiber.run do
+      get_db do |db|
+        count = db.query_one "select count(*) from anime_progress where username = (?) and anime_id = (?)",
+          username, anime_id, as: Int64
+        if count == 0
+          db.exec "insert into anime_progress values (?, ?, ?, ?, ?, ?)",
+            username, anime_id, episode_id, timestamp, 0, now
+        else
+          db.exec "update anime_progress set episode_id = (?), timestamp_position = (?), updated_at = (?) where username = (?) and anime_id = (?)",
+            episode_id, timestamp, now, username, anime_id
+        end
+      end
+    end
+  end
+
+  def mark_anime_completed(username : String, anime_id : String)
+    now = Time.utc.to_unix
+    MainFiber.run do
+      get_db do |db|
+        db.exec "update anime_progress set completed = 1, updated_at = (?) where username = (?) and anime_id = (?)",
+          now, username, anime_id
+      end
+    end
+  end
+
+  def get_anime_progress(username : String, anime_id : String) : NamedTuple(episode_id: String?, timestamp: Float64, completed: Bool)?
+    result = nil
+    MainFiber.run do
+      get_db do |db|
+        db.query_one? "select episode_id, timestamp_position, completed from anime_progress where username = (?) and anime_id = (?)",
+          username, anime_id do |rs|
+          result = {
+            episode_id: rs.read(String?),
+            timestamp: rs.read(Float64),
+            completed: rs.read(Int32) == 1,
+          }
+        end
+      end
+    end
+    result
+  end
+
+  def list_continue_watching_anime(username : String, limit : Int32 = 8)
+    results = [] of NamedTuple(anime_id: String, episode_id: String?, timestamp: Float64, updated_at: Int64, completed: Bool)
+    MainFiber.run do
+      get_db do |db|
+        db.query "select anime_id, episode_id, timestamp_position, updated_at, completed from anime_progress where username = (?) order by updated_at desc limit (?)",
+          username, limit do |rs|
+          rs.each do
+            results << {
+              anime_id: rs.read(String),
+              episode_id: rs.read(String?),
+              timestamp: rs.read(Float64),
+              updated_at: rs.read(Int64),
+              completed: rs.read(Int32) == 1,
+            }
+          end
+        end
+      end
+    end
+    results
+  end
+
+  # ---- End anime storage methods ----
+
   def close
     MainFiber.run do
       unless @db.nil?

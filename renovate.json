@@ -1,0 +1,21 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "labels": ["dependencies"],
+  "packageRules": [
+    {
+      "matchManagers": ["docker-compose"],
+      "groupName": "Docker images",
+      "automerge": false
+    },
+    {
+      "matchManagers": ["npm"],
+      "groupName": "npm dependencies",
+      "automerge": false
+    },
+    {
+      "matchUpdateTypes": ["pin"],
+      "automerge": true
+    }
+  ]
+}

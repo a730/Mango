@@ -1,0 +1,98 @@
+<div x-data="animeBrowseComponent()" x-init="init()" x-cloak>
+  <div class="uk-grid-small" uk-grid style="margin-bottom:40px;">
+    <div class="uk-container uk-text-center" x-show="plugins.length === 0" style="width:100%">
+      <h2>No Anime Plugins Found</h2>
+      <p>We couldn't find any anime plugins in the directory <code><%= Config.current.plugin_path %></code>.</p>
+      <p>Anime plugins must have <code>"capability": "anime"</code> in their <code>info.json</code>.</p>
+    </div>
+
+    <div x-show="plugins.length > 0" style="width:100%">
+      <h2 class="uk-title">Browse Anime
+        <span x-show="searching" uk-spinner class="uk-margin-left"></span>
+      </h2>
+
+      <div class="uk-grid-small" uk-grid>
+        <div class="uk-width-3-4@m">
+          <div class="uk-margin">
+            <div class="uk-form-controls">
+              <input class="uk-input" type="text" :placeholder="info ? info.placeholder : 'Search anime...'" x-model="query" @keydown.enter="search()">
+            </div>
+          </div>
+        </div>
+        <div class="uk-width-expand">
+          <div class="uk-margin">
+            <label class="uk-form-label">Choose a plugin</label>
+            <div class="uk-form-controls">
+              <select class="uk-select" x-model="pid" @change="pluginChanged()">
+                <template x-for="p in plugins" :key="p">
+                  <option :value="p.id" x-text="p.title"></option>
+                </template>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search results -->
+      <template x-if="results">
+        <div class="uk-margin">
+          <p x-show="results.length === 0">No matching anime found.</p>
+
+          <div class="uk-child-width-1-4@m uk-child-width-1-2" uk-grid>
+            <template x-for="r in results" :key="r.id">
+              <div>
+                <div class="uk-card uk-card-default uk-card-hover" @click="selectAnime(r)" style="cursor:pointer;">
+                  <div class="uk-card-media-top uk-inline">
+                    <img uk-img :data-src="r.cover_url" style="width:100%;height:250px;object-fit:cover;">
+                  </div>
+                  <div class="uk-card-body">
+                    <h3 class="uk-card-title break-word uk-margin-remove-bottom" x-text="r.title"></h3>
+                    <p class="uk-text-meta" x-text="`ID: ${r.id}`"></p>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </template>
+
+      <!-- Episodes list for selected anime -->
+      <template x-if="selectedAnime && episodes">
+        <div class="uk-margin-large-top">
+          <h3 x-text="selectedAnime.title"></h3>
+          <p x-text="`${episodes.length} episodes`"></p>
+
+          <div uk-spinner x-show="loadingEpisodes"></div>
+
+          <div class="uk-overflow-auto" x-show="!loadingEpisodes">
+            <table class="uk-table uk-table-striped">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Title</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="ep in episodes" :key="ep.id">
+                  <tr>
+                    <td x-text="ep.episode_number"></td>
+                    <td x-text="ep.title || 'Episode ' + ep.episode_number"></td>
+                    <td>
+                      <button class="uk-button uk-button-primary uk-button-small" @click="watchAnime(ep)">Play</button>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+</div>
+
+<% content_for "script" do %>
+  <script src="<%= base_url %>js/alert.js"></script>
+  <script src="<%= base_url %>js/anime-browse.js"></script>
+<% end %>

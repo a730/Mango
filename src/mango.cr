@@ -55,19 +55,29 @@ class CLI < Clim
       Config.load(opts.config).set_current
 
       # Initialize main components
+      Logger.debug "Init LRUCache"
       LRUCache.init
+      Logger.debug "Init Storage"
       Storage.default
+      Logger.debug "Init Queue"
       Queue.default
+      Logger.debug "Init Library"
       Library.load_instance
       Library.default
+      Logger.debug "Init Plugin Downloader"
       Plugin::Downloader.default
+      Logger.debug "Init Plugin Updater"
       Plugin::Updater.default
+      Logger.debug "Init complete, starting server"
 
       spawn do
         begin
+          STDOUT.flush
+          STDERR.puts ">>> Starting server..."
           Server.new.start
         rescue e
-          Logger.fatal e
+          STDERR.puts ">>> SERVER FAILED: #{e.message}"
+          STDERR.puts e.backtrace?.try &.join("\n").to_s
           Process.exit 1
         end
       end

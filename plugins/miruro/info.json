@@ -1,0 +1,11 @@
+{
+  "id": "miruro",
+  "title": "Miruro (Self-Hosted)",
+  "placeholder": "Search anime (Miruro)...",
+  "api_version": 3,
+  "capability": "anime",
+  "wait_seconds": 1,
+  "settings": {
+    "api_base_url": "http://localhost:8000"
+  }
+}

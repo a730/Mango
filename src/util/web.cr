@@ -1,5 +1,17 @@
 # Web related helper functions/macros
 
+def proxy_allows?(url : String) : Bool
+  allowed = Config.current.proxy_allowed_domains
+  return true if allowed.empty?
+
+  host = URI.parse(url).hostname
+  return false if host.nil?
+
+  allowed.split(",").any? do |domain|
+    host.ends_with?(domain.strip)
+  end
+end
+
 def is_admin?(env) : Bool
   is_admin = false
   if !Config.current.auth_proxy_header_name.empty? ||

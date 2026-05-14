@@ -2,6 +2,7 @@
 /lib/
 /bin/
 /.shards/
+.coding-memory/
 *.dwarf
 node_modules
 yarn.lock
@@ -14,3 +15,5 @@ public/img/*.svg
 public/js/*.min.js
 public/css/*.css
 public/webfonts
+*.h
+src/util/proxy.cr.disabled
