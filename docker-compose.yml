@@ -1,7 +1,7 @@
 services:
   mango:
     container_name: mango
-    image: mango:latest
+    image: ${MANGO_IMAGE:-ghcr.io/a730/mango:latest}
     build:
       context: .
       dockerfile: ./Dockerfile
@@ -34,7 +34,7 @@ services:
 
   anime-middleware:
     container_name: anime-middleware
-    image: mango-anime-middleware:latest
+    image: ${MIDDLEWARE_IMAGE:-ghcr.io/a730/mango-anime-middleware:latest}
     build:
       context: ./anime-middleware
       dockerfile: Dockerfile
