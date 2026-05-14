@@ -1,5 +1,6 @@
 /docs/
-/lib/
+/lib/*
+!/lib/image_size/
 /bin/
 /.shards/
 .coding-memory/
@@ -16,5 +17,6 @@ public/js/*.min.js
 public/css/*.css
 public/webfonts
 *.h
+!lib/image_size/**/*.h
 src/util/proxy.cr.disabled
 dist/

@@ -31,8 +31,7 @@ dependencies:
     github: kostya/myhtml
   http_proxy:
     github: mamantoha/http_proxy
-  image_size:
-   github: hkalexling/image_size.cr
+  # image_size is vendored at lib/image_size/
   koa:
     github: hkalexling/koa
   tallboy:

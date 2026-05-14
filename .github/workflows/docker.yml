@@ -35,16 +35,7 @@ jobs:
           sudo apt-get install -y libssl-dev libxml2-dev libyaml-dev libreadline-dev \
             libpcre2-dev libsqlite3-dev libarchive-dev libjpeg-dev libpng-dev libtiff-dev
 
-      - name: Install shards (first pass, image_size postinstall will fail)
-        run: shards install || true
-
-      - name: Fix image_size native build (stb_image_resize.h removed from upstream)
-        run: |
-          sed -i 's|nothings/stb/master/stb_image_resize.h|nothings/stb/af1a5bc352164740c1cc1354942b1c6b72eacb8a/stb_image_resize.h|g' \
-            lib/image_size/ext/stbi/Makefile
-          cd lib/image_size && make 2>&1 | tail -5
-
-      - name: Install shards (second pass, image_size now succeeds)
+      - name: Install shards
         run: shards install
 
       - name: Install Node.js
@@ -54,9 +45,6 @@ jobs:
 
       - name: Install frontend dependencies
         run: npm install
-
-      - name: Build Mango binary
-        run: crystal build src/mango.cr --release --progress
 
       - name: Build Mango binary
         run: crystal build src/mango.cr --release --progress
