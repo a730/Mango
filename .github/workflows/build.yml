@@ -20,6 +20,8 @@ jobs:
         crystal: 1.16.3
     - name: Install system deps
       run: sudo apt-get update && sudo apt-get install -y libssl-dev libxml2-dev libyaml-dev libreadline-dev libpcre2-dev libsqlite3-dev libarchive-dev libjpeg-dev libpng-dev libtiff-dev
+    - name: Build vendored image_size native extensions
+      run: cd lib/image_size && make 2>&1 | tail -5
     - name: Install shards
       run: shards install
     - name: Build
