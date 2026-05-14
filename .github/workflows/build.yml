@@ -26,9 +26,8 @@ jobs:
         cd lib/image_size/ext/stbi
         curl -sL -o stb_image_resize.h \
           "https://raw.githubusercontent.com/nothings/stb/af1a5bc352164740c1cc1354942b1c6b72eacb8a/stb_image_resize.h"
-        cd ../..
-        make 2>&1 | tail -5
-        cd /workspaces/Mango
+          cd ../..
+          make 2>&1 | tail -5
     - name: Install remaining shards
       run: shards install
     - name: Install shards
