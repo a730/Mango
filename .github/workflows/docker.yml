@@ -35,15 +35,25 @@ jobs:
           sudo apt-get install -y libssl-dev libxml2-dev libyaml-dev libreadline-dev \
             libpcre2-dev libsqlite3-dev libarchive-dev libjpeg-dev libpng-dev libtiff-dev
 
+      - name: Pre-install patched image_size shard
+        run: |
+          git clone --depth=1 https://github.com/hkalexling/image_size.cr.git lib/image_size
+          cd lib/image_size/ext/stbi
+          curl -sL -o stb_image_resize.h \
+            "https://raw.githubusercontent.com/nothings/stb/af1a5bc352164740c1cc1354942b1c6b72eacb8a/stb_image_resize.h"
+          cd ../..
+          make 2>&1 | tail -5
+
+      - name: Install remaining shards
+        run: shards install
+
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
 
       - name: Install frontend dependencies
-        run: |
-          npm install
-          npx gulp
+        run: npm install
 
       - name: Install Crystal shards
         run: shards install
