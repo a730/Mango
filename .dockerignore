@@ -1,8 +1,12 @@
 node_modules
-lib
+lib/*
+!lib/image_size/
+!lib/mg/
+!lib/archive/
 Dockerfile
 Dockerfile.arm32v7
 Dockerfile.arm64v8
+Dockerfile.release
 README.md
 .all-contributorsrc
 env.example

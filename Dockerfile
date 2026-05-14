@@ -3,12 +3,21 @@ FROM crystallang/crystal:1.16.3-alpine AS builder
 WORKDIR /Mango
 
 COPY . .
-RUN apk add --no-cache yarn yaml-static sqlite-static libarchive-dev libarchive-static acl-static expat-static zstd-static lz4-static bzip2-static libjpeg-turbo-dev libpng-dev tiff-dev
-RUN yarn && yarn uglify
+
+RUN apk add --no-cache yaml-static sqlite-static libarchive-dev libarchive-static \
+  acl-static expat-static zstd-static lz4-static bzip2-static \
+  libjpeg-turbo-dev libpng-dev tiff-dev gcc make musl-dev curl
+
+# Build vendored image_size native extensions
+RUN cd lib/image_size && make
+
+# Install Crystal dependencies
 RUN shards install
+
+# Build Mango binary
 RUN crystal build src/mango.cr --release --progress
 
-FROM library/alpine
+FROM alpine:latest
 
 RUN adduser -D mango
 WORKDIR /home/mango

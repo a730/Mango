@@ -12,10 +12,10 @@ objects/libwebp.o: libwebp.o
 	mv libwebp.o objects
 
 libwebp.o: libwebp-1.1.0/src/libwebp.a libwebp.h libwebp.c
-	gcc -c libwebp.c -L./libwebp-1.1.0/src/libwebp.a -o libwebp.o
+	gcc -D_FORTIFY_SOURCE=0 -c libwebp.c -L./libwebp-1.1.0/src/libwebp.a -o libwebp.o
 
 libwebp-1.1.0/src/libwebp.a: libwebp-1.1.0/makefile.unix
-	cd libwebp-1.1.0 && make -f makefile.unix
+	cd libwebp-1.1.0 && make -f makefile.unix CFLAGS='-D_FORTIFY_SOURCE=0 -O3 -DNDEBUG'
 
 libwebp-1.1.0/makefile.unix: v1.1.0.tar.gz
 	tar -xvf v1.1.0.tar.gz

@@ -1,4 +1,4 @@
-FROM library/alpine
+FROM alpine:latest
 
 RUN adduser -D mango
 WORKDIR /home/mango
