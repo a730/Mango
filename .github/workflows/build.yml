@@ -20,17 +20,14 @@ jobs:
         crystal: 1.16.3
     - name: Install system deps
       run: sudo apt-get update && sudo apt-get install -y libssl-dev libxml2-dev libyaml-dev libreadline-dev libpcre2-dev libsqlite3-dev libarchive-dev libjpeg-dev libpng-dev libtiff-dev
-    - name: Pre-install patched image_size shard
+    - name: Install shards (first pass, image_size postinstall will fail)
+      run: shards install || true
+    - name: Fix image_size native build (stb_image_resize.h removed from upstream)
       run: |
-        git clone --depth=1 https://github.com/hkalexling/image_size.cr.git lib/image_size
-        cd lib/image_size/ext/stbi
-        curl -sL -o stb_image_resize.h \
-          "https://raw.githubusercontent.com/nothings/stb/af1a5bc352164740c1cc1354942b1c6b72eacb8a/stb_image_resize.h"
-          cd ../..
-          make 2>&1 | tail -5
-    - name: Install remaining shards
-      run: shards install
-    - name: Install shards
+        sed -i 's|nothings/stb/master/stb_image_resize.h|nothings/stb/af1a5bc352164740c1cc1354942b1c6b72eacb8a/stb_image_resize.h|g' \
+          lib/image_size/ext/stbi/Makefile
+        cd lib/image_size && make 2>&1 | tail -5
+    - name: Install shards (second pass, image_size now succeeds)
       run: shards install
     - name: Build
       run: crystal build src/mango.cr --release --progress
