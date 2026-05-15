@@ -33,5 +33,22 @@ const mangaReaderComponent = () => {
     onPageLoaded() {
       // Track scroll for progress
     },
+
+    onPageError(idx) {
+      this.pages[idx].failed = true;
+    },
+
+    setupImageErrorHandling() {
+      document.addEventListener("error", (e) => {
+        if (e.target.tagName === "IMG" && e.target.dataset.mangaPage !== undefined) {
+          const idx = parseInt(e.target.dataset.mangaPage);
+          const img = e.target;
+          if (!img._retryAttempted && img.src.includes("comicknew.pictures")) {
+            img._retryAttempted = true;
+            img.src = `${base_url}api/manga/image_proxy?url=${encodeURIComponent(img.src)}`;
+          }
+        }
+      }, true);
+    },
   };
 };

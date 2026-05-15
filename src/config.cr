@@ -23,7 +23,7 @@ class Config
     "default_username"                    => "",
     "auth_proxy_header_name"              => "",
     "plugin_update_interval_hours"        => 24,
-    "proxy_allowed_domains"               => "animekai.to,megaup.net,enc-dec.app",
+    "proxy_allowed_domains"               => "animekai.to,megaup.net,enc-dec.app,shop21pro.site,lab27core.site,comicknew.pictures,meo.comick.pictures,meo3.comick.pictures,mangadex.org",
   }
 
   include YAML::Serializable

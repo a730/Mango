@@ -11,6 +11,10 @@ RUN apk add --no-cache yaml-static sqlite-static libarchive-dev libarchive-stati
 # Build vendored image_size native extensions
 RUN cd lib/image_size && make
 
+# Install Node.js and compile frontend assets
+RUN apk add --no-cache nodejs npm
+RUN npm install && npx gulp dev
+
 # Install Crystal dependencies
 RUN shards install
 

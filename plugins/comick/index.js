@@ -2,13 +2,18 @@ var MW = mango.settings("middleware_base_url") || "http://localhost:3456";
 var SOURCE = mango.settings("source") || "comick";
 var _pages = [];
 
+function proxyUrl(url) {
+  if (!url) return "";
+  return "/api/manga/image_proxy?url=" + encodeURIComponent(url);
+}
+
 function searchManga(query) {
   var url = MW + "/api/manga/search?q=" + encodeURIComponent(query) + "&source=" + encodeURIComponent(SOURCE);
   var res = mango.get(url);
   var data = JSON.parse(res.body);
   if (!data.success) return "[]";
   return JSON.stringify(data.results.map(function(m) {
-    return { id: m.id, title: m.title || "", cover_url: m.cover_url || "" };
+    return { id: m.id, title: m.title || "", cover_url: proxyUrl(m.cover_url || "") };
   }));
 }
 
@@ -35,5 +40,5 @@ function selectChapter(chapterId) {
 function nextPage() {
   if (_pages.length === 0) return JSON.stringify({});
   var page = _pages.shift();
-  return JSON.stringify({ url: page.url, filename: "page_" + (page.page || (_pages.length + 1)) + ".jpg" });
+  return JSON.stringify({ url: proxyUrl(page.url), filename: "page_" + (page.page || (_pages.length + 1)) + ".jpg" });
 }
