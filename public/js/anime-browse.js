@@ -9,6 +9,10 @@ const animeBrowseComponent = () => {
 		selectedAnime: null,
 		episodes: null,
 		loadingEpisodes: false,
+		page: 1,
+		limit: 20,
+		hasMore: false,
+		metadataCache: {},
 
 		init() {
 			fetch(`${base_url}api/admin/plugin?capability=anime`)
@@ -46,24 +50,39 @@ const animeBrowseComponent = () => {
 			this.results = null;
 			this.selectedAnime = null;
 			this.episodes = null;
+			this.page = 1;
+			this.hasMore = false;
 			this.loadPlugin(this.pid);
 			localStorage.setItem("anime-plugin", this.pid);
 		},
 
-		search() {
+		search(reset = true) {
 			const q = this.query.trim();
 			if (!q) return;
 
+			if (reset) {
+				this.page = 1;
+				this.results = null;
+				this.hasMore = false;
+			}
+
 			this.searching = true;
-			this.results = null;
 			this.selectedAnime = null;
 			this.episodes = null;
 
-			fetch(`${base_url}api/anime/search?plugin=${encodeURIComponent(this.pid)}&query=${encodeURIComponent(q)}`)
+			fetch(`${base_url}api/anime/search?plugin=${encodeURIComponent(this.pid)}&query=${encodeURIComponent(q)}&page=${this.page}&limit=${this.limit}`)
 				.then(r => r.json())
 				.then(data => {
 					if (!data.success) throw new Error(data.error);
-					this.results = data.results;
+					const newResults = data.results || [];
+
+					if (reset) {
+						this.results = newResults;
+					} else {
+						this.results = (this.results || []).concat(newResults);
+					}
+
+					this.hasMore = newResults.length >= this.limit;
 				})
 				.catch(e => {
 					alert("danger", `Search failed: ${e}`);
@@ -73,12 +92,33 @@ const animeBrowseComponent = () => {
 				});
 		},
 
+		loadMore() {
+			this.page++;
+			this.search(false);
+		},
+
+		loadMetadata(anime) {
+			if (this.metadataCache[anime.id]) {
+				anime._meta = this.metadataCache[anime.id];
+				return;
+			}
+
+			fetch(`${base_url}api/anime/metadata?plugin=${encodeURIComponent(this.pid)}&source_id=${encodeURIComponent(anime.id)}`)
+				.then(r => r.json())
+				.then(data => {
+					if (data.success && data.metadata) {
+						anime._meta = data.metadata;
+						this.metadataCache[anime.id] = data.metadata;
+					}
+				})
+				.catch(e => console.error("Failed to load metadata:", e));
+		},
+
 		selectAnime(anime) {
 			this.selectedAnime = anime;
 			this.loadingEpisodes = true;
 			this.episodes = null;
 
-			// Save to local library
 			fetch(`${base_url}api/anime/save`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
@@ -87,6 +127,7 @@ const animeBrowseComponent = () => {
 					source_id: anime.id,
 					plugin_id: this.pid,
 					cover_url: anime.cover_url || null,
+					metadata: anime._meta ? JSON.stringify(anime._meta) : null,
 				}),
 			})
 				.then(r => r.json())
@@ -94,7 +135,6 @@ const animeBrowseComponent = () => {
 					if (!data.success) throw new Error(data.error);
 					this.animeDbId = data.id;
 
-					// List episodes
 					return fetch(`${base_url}api/anime/episodes?plugin=${encodeURIComponent(this.pid)}&source_id=${encodeURIComponent(anime.id)}`);
 				})
 				.then(r => r.json())
@@ -102,7 +142,6 @@ const animeBrowseComponent = () => {
 					if (!data.success) throw new Error(data.error);
 					this.episodes = data.episodes;
 
-					// Save episodes
 					if (this.animeDbId && this.episodes.length > 0) {
 						fetch(`${base_url}api/anime/save_episodes`, {
 							method: "POST",

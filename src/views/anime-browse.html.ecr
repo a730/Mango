@@ -41,17 +41,32 @@
           <div class="uk-child-width-1-4@m uk-child-width-1-2" uk-grid>
             <template x-for="r in results" :key="r.id">
               <div>
-                <div class="uk-card uk-card-default uk-card-hover" @click="selectAnime(r)" style="cursor:pointer;">
+                <div class="uk-card uk-card-default uk-card-hover" @click="selectAnime(r); loadMetadata(r)" style="cursor:pointer;">
                   <div class="uk-card-media-top uk-inline">
                     <img uk-img :data-src="r.cover_url" style="width:100%;height:250px;object-fit:cover;">
+                    <div class="uk-overlay uk-overlay-primary uk-position-bottom" x-show="r._meta" style="padding: 4px 8px;">
+                      <span class="uk-text-small" x-show="r._meta && r._meta.type" x-text="r._meta.type"></span>
+                      <span class="uk-text-small uk-margin-left" x-show="r._meta && r._meta.status" x-text="r._meta.status"></span>
+                    </div>
                   </div>
                   <div class="uk-card-body">
                     <h3 class="uk-card-title break-word uk-margin-remove-bottom" x-text="r.title"></h3>
-                    <p class="uk-text-meta" x-text="`ID: ${r.id}`"></p>
+                    <p class="uk-text-meta uk-margin-remove-top" x-show="r._meta">
+                      <span x-show="r._meta && r._meta.year" x-text="r._meta.year"></span>
+                      <span x-show="r._meta && r._meta.genres && r._meta.genres.length > 0" class="uk-margin-small-left" x-text="(r._meta.genres || []).slice(0, 3).join(', ')"></span>
+                    </p>
                   </div>
                 </div>
               </div>
             </template>
+          </div>
+
+          <!-- Load more button -->
+          <div class="uk-text-center uk-margin-top" x-show="hasMore">
+            <button class="uk-button uk-button-default" @click="loadMore()" :disabled="searching">
+              <span x-show="!searching">Load More</span>
+              <span x-show="searching" uk-spinner="ratio: 0.6"></span>
+            </button>
           </div>
         </div>
       </template>
@@ -61,6 +76,9 @@
         <div class="uk-margin-large-top">
           <h3 x-text="selectedAnime.title"></h3>
           <p x-text="`${episodes.length} episodes`"></p>
+          <div x-show="selectedAnime._meta && selectedAnime._meta.description" class="uk-margin-small-bottom">
+            <p class="uk-text-meta" x-text="selectedAnime._meta.description"></p>
+          </div>
 
           <div uk-spinner x-show="loadingEpisodes"></div>
 

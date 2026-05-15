@@ -779,19 +779,112 @@ class Storage
     result
   end
 
+  def save_anime_episode_progress(username : String, anime_id : String,
+                                   episode_id : String, timestamp : Float64, completed : Bool = false)
+    now = Time.utc.to_unix
+    MainFiber.run do
+      get_db do |db|
+        count = db.query_one "select count(*) from anime_episode_progress where username = (?) and anime_id = (?) and episode_id = (?)",
+          username, anime_id, episode_id, as: Int64
+        if count == 0
+          db.exec "insert into anime_episode_progress values (?, ?, ?, ?, ?, ?)",
+            username, anime_id, episode_id, timestamp, completed ? 1 : 0, now
+        else
+          db.exec "update anime_episode_progress set timestamp_position = (?), completed = (?), updated_at = (?) where username = (?) and anime_id = (?) and episode_id = (?)",
+            timestamp, completed ? 1 : 0, now, username, anime_id, episode_id
+        end
+      end
+    end
+  end
+
+  def get_anime_episode_progress(username : String, anime_id : String, episode_id : String) : NamedTuple(timestamp: Float64, completed: Bool)?
+    result = nil
+    MainFiber.run do
+      get_db do |db|
+        db.query_one? "select timestamp_position, completed from anime_episode_progress where username = (?) and anime_id = (?) and episode_id = (?)",
+          username, anime_id, episode_id do |rs|
+          result = {
+            timestamp: rs.read(Float64),
+            completed: rs.read(Int32) == 1,
+          }
+        end
+      end
+    end
+    result
+  end
+
+  def list_anime_episode_progress(username : String, anime_id : String)
+    results = [] of NamedTuple(episode_id: String, timestamp: Float64, completed: Bool, updated_at: Int64)
+    MainFiber.run do
+      get_db do |db|
+        db.query "select episode_id, timestamp_position, completed, updated_at from anime_episode_progress where username = (?) and anime_id = (?) order by updated_at desc",
+          username, anime_id do |rs|
+          rs.each do
+            results << {
+              episode_id: rs.read(String),
+              timestamp: rs.read(Float64),
+              completed: rs.read(Int32) == 1,
+              updated_at: rs.read(Int64),
+            }
+          end
+        end
+      end
+    end
+    results
+  end
+
   def list_continue_watching_anime(username : String, limit : Int32 = 8)
-    results = [] of NamedTuple(anime_id: String, episode_id: String?, timestamp: Float64, updated_at: Int64, completed: Bool)
+    results = [] of NamedTuple(anime_id: String, episode_id: String?, episode_number: Int32?, episode_title: String?, timestamp: Float64, updated_at: Int64, completed: Bool, progress_pct: Float64)
     MainFiber.run do
       get_db do |db|
         db.query "select anime_id, episode_id, timestamp_position, updated_at, completed from anime_progress where username = (?) order by updated_at desc limit (?)",
           username, limit do |rs|
           rs.each do
+            anime_id = rs.read(String)
+            episode_id = rs.read(String?)
+            timestamp = rs.read(Float64)
+            updated_at = rs.read(Int64)
+            completed = rs.read(Int32) == 1
+
+            episode_number = nil
+            episode_title = nil
+            progress_pct = 0.0
+
+            if episode_id
+              ep_data = db.query_one? "select episode_number, title, metadata from anime_episodes where id = (?)", episode_id do |ep_rs|
+                {
+                  number: ep_rs.read(Int32),
+                  title: ep_rs.read(String?),
+                  metadata: ep_rs.read(String?),
+                }
+              end
+              if ep_data
+                episode_number = ep_data[:number]
+                episode_title = ep_data[:title]
+
+                duration = 0.0
+                if meta_str = ep_data[:metadata]
+                  begin
+                    meta = JSON.parse(meta_str)
+                    if dur = meta["duration"]?
+                      duration = dur.as_f
+                    end
+                  rescue
+                  end
+                end
+                progress_pct = duration > 0 ? (timestamp / duration * 100).round(1) : 0.0
+              end
+            end
+
             results << {
-              anime_id: rs.read(String),
-              episode_id: rs.read(String?),
-              timestamp: rs.read(Float64),
-              updated_at: rs.read(Int64),
-              completed: rs.read(Int32) == 1,
+              anime_id: anime_id,
+              episode_id: episode_id,
+              episode_number: episode_number,
+              episode_title: episode_title,
+              timestamp: timestamp,
+              updated_at: updated_at,
+              completed: completed,
+              progress_pct: progress_pct,
             }
           end
         end

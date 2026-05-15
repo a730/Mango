@@ -6,32 +6,37 @@
 
 <body style="background: black;">
   <div x-data="animePlayerComponent()" x-init="init('<%= anime_id %>', '<%= plugin_id %>', '<%= anime_title %>')">
-    <div class="uk-position-top uk-padding-small" style="z-index: 100;">
+    <div class="uk-position-top uk-padding-small" style="z-index: 100;" x-show="showControls" x-transition>
       <a class="uk-button uk-button-default uk-button-small" href="<%= base_url %>anime">
         <span uk-icon="arrow-left"></span> Back
       </a>
       <span class="uk-text-middle uk-margin-left uk-text-white" x-text="animeTitle"></span>
     </div>
 
-    <div id="player-container" style="width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center;">
+    <div id="player-container" x-ref="playerContainer" style="width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; position: relative;" @mousemove="showControlsTemporarily()" @click="showControlsTemporarily()">
       <div x-show="loading" class="uk-text-center uk-text-white">
         <div uk-spinner class="uk-margin-bottom"></div>
         <p x-text="loadingMsg"></p>
       </div>
 
-      <video id="anime-video" x-show="!loading" x-cloak
+      <div x-show="loadingFailed" class="uk-text-center uk-text-white">
+        <p class="uk-text-large" x-text="loadingMsg"></p>
+        <button class="uk-button uk-button-primary uk-margin-top" @click="retryPlayback()">Retry</button>
+      </div>
+
+      <video id="anime-video" x-show="!loading && !loadingFailed" x-cloak
              style="max-width: 100vw; max-height: 100vh;"
              controls autoplay
              x-ref="video">
       </video>
     </div>
 
-    <div class="uk-position-bottom uk-padding" style="z-index: 100;">
-      <div class="uk-flex uk-flex-center uk-flex-middle" x-show="!loading" x-cloak>
+    <div class="uk-position-bottom uk-padding" style="z-index: 100;" x-show="showControls && !loading && !loadingFailed" x-cloak x-transition>
+      <div class="uk-flex uk-flex-center uk-flex-middle uk-flex-wrap">
         <button class="uk-button uk-button-default uk-button-small uk-margin-small-right" @click="prevEpisode()" :disabled="currentEpisodeIndex <= 0">
           <span uk-icon="chevron-left"></span> Previous
         </button>
-        <select class="uk-select uk-width-auto uk-margin-small-right" x-model="currentEpisodeIndex" @change="episodeSelected()">
+        <select class="uk-select uk-width-auto uk-margin-small-right" x-model="currentEpisodeIndex" @change="episodeSelected()" style="max-width: 250px;">
           <template x-for="(ep, idx) in episodes" :key="ep.id">
             <option :value="idx" x-text="'Ep ' + ep.episode_number + (ep.title ? ' - ' + ep.title : '')"></option>
           </template>
@@ -40,16 +45,48 @@
           Next <span uk-icon="chevron-right"></span>
         </button>
 
-        <select class="uk-select uk-width-auto" x-model="selectedQuality" @change="qualityChanged()" x-show="qualities.length > 0">
+        <select class="uk-select uk-width-auto uk-margin-small-right" x-model="selectedQuality" @change="qualityChanged()" x-show="qualities.length > 0" style="max-width: 100px;">
+          <option value="" disabled>Quality</option>
           <template x-for="q in qualities" :key="q">
             <option :value="q" x-text="q"></option>
           </template>
         </select>
+
+        <select class="uk-select uk-width-auto uk-margin-small-right" x-model="selectedSubtitle" @change="subtitleChanged()" x-show="subtitles.length > 0" style="max-width: 150px;">
+          <option value="none">No Subtitles</option>
+          <template x-for="(sub, idx) in subtitles" :key="idx">
+            <option :value="idx" x-text="sub.label || 'Sub ' + (idx + 1)"></option>
+          </template>
+        </select>
+
+        <button class="uk-button uk-button-default uk-button-small uk-margin-small-right" @click="changePlaybackRate()" :title="'Speed: ' + playbackRate + 'x'">
+          <span x-text="playbackRate + 'x'"></span>
+        </button>
+
+        <button class="uk-button uk-button-default uk-button-small uk-margin-small-right" @click="togglePiP()" :title="isPiP ? 'Exit PiP' : 'Picture-in-Picture'">
+          <span uk-icon="thumbnails"></span>
+        </button>
+
+        <button class="uk-button uk-button-default uk-button-small uk-margin-small-right" @click="toggleMute()" :title="isMuted ? 'Unmute' : 'Mute'">
+          <span :uk-icon="isMuted ? 'volume-mute' : 'volume-high'"></span>
+        </button>
+
+        <button class="uk-button uk-button-default uk-button-small uk-margin-small-right" @click="downloadEpisode()" :disabled="downloading" title="Download Episode">
+          <span uk-icon="download"></span>
+        </button>
+
+        <button class="uk-button uk-button-default uk-button-small" @click="toggleFullscreen()" :title="isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'">
+          <span uk-icon="expand"></span>
+        </button>
+      </div>
+
+      <div class="uk-text-center uk-text-meta uk-text-white uk-margin-small-top">
+        <span>Keyboard: Space=Play/Pause, J/L=Seek, F=Fullscreen, M=Mute, P=PiP, S=Subtitles, .=Speed</span>
       </div>
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7"></script>
   <script>
     const base_url = "<%= base_url %>";
   </script>
@@ -62,6 +99,8 @@
   .uk-text-white { color: white; }
   .uk-select { background: rgba(255,255,255,0.9); }
   video::-webkit-media-controls { z-index: 200; }
+  #player-container:fullscreen { background: black; }
+  #player-container:-webkit-full-screen { background: black; }
 </style>
 
 </html>

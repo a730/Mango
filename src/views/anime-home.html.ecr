@@ -43,7 +43,10 @@
                 </div>
                 <div class="uk-card-body">
                   <h3 class="uk-card-title break-word uk-margin-remove-bottom" x-text="item.title"></h3>
-                  <p class="uk-text-meta" x-text="item.completed ? 'Completed' : 'In Progress'"></p>
+                  <p class="uk-text-meta uk-margin-remove-bottom" x-text="item.episode_info ? `Ep ${item.episode_info.number}` : (item.completed ? 'Completed' : 'In Progress')"></p>
+                  <div class="uk-progress uk-margin-small-top" x-show="item.progress_pct > 0" style="height: 4px;">
+                    <div class="uk-progress-bar" :style="`width: ${item.progress_pct}%`"></div>
+                  </div>
                 </div>
               </div>
             </a>

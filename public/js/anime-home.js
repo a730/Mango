@@ -24,12 +24,20 @@ const animeHomeComponent = () => {
 				.then(data => {
 					if (!data.success) throw new Error(data.error);
 					const items = data.items || [];
-					this.continueWatching = items.map(item => ({
-						anime_id: item.progress.anime_id,
-						title: item.anime ? item.anime.title : "Unknown",
-						cover_url: item.anime ? item.anime.cover_url : null,
-						completed: item.progress.completed,
-					}));
+					this.continueWatching = items.map(item => {
+						const epInfo = item.progress.episode_number ? {
+							number: item.progress.episode_number,
+							title: item.progress.episode_title,
+						} : null;
+						return {
+							anime_id: item.progress.anime_id,
+							title: item.anime ? item.anime.title : "Unknown",
+							cover_url: item.anime ? item.anime.cover_url : null,
+							completed: item.progress.completed,
+							progress_pct: item.progress.progress_pct || 0,
+							episode_info: epInfo,
+						};
+					});
 				})
 				.catch(e => console.error("Failed to load continue watching:", e));
 		},

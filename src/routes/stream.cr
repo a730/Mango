@@ -9,12 +9,48 @@ struct StreamRouter
       begin
         pid = env.params.query["plugin"].as(String)
         query = env.params.query["query"].as(String)
+        page = env.params.query["page"]?.try(&.to_i) || 1
+        limit = env.params.query["limit"]?.try(&.to_i) || 20
         plugin = Plugin.new pid
 
         results = plugin.search_anime(query)
+
+        # Apply pagination
+        start_idx = (page - 1) * limit
+        end_idx = start_idx + limit
+        paginated_results = if start_idx < results.as_a.size
+          JSON::Any.new(results.as_a[start_idx...[end_idx, results.as_a.size].min])
+        else
+          JSON::Any.new([] of JSON::Any)
+        end
+
         send_json env, {
           "success" => true,
-          "results" => results,
+          "results" => paginated_results,
+          "page"    => page,
+          "limit"   => limit,
+          "total"   => results.size,
+        }.to_json
+      rescue e
+        Logger.error e
+        send_json env, {
+          "success" => false,
+          "error"   => e.message,
+        }.to_json
+      end
+    end
+
+    # Get anime metadata via plugin
+    get "/api/anime/metadata" do |env|
+      begin
+        pid = env.params.query["plugin"].as(String)
+        source_id = env.params.query["source_id"].as(String)
+        plugin = Plugin.new pid
+
+        metadata = plugin.get_anime_metadata(source_id)
+        send_json env, {
+          "success"  => true,
+          "metadata" => metadata,
         }.to_json
       rescue e
         Logger.error e
@@ -205,6 +241,53 @@ struct StreamRouter
         anime_id = env.params.query["anime_id"].as(String)
 
         progress = Storage.default.get_anime_progress username, anime_id
+        episode_progress = Storage.default.list_anime_episode_progress username, anime_id
+        send_json env, {
+          "success"          => true,
+          "progress"         => progress,
+          "episode_progress" => episode_progress,
+        }.to_json
+      rescue e
+        Logger.error e
+        send_json env, {
+          "success" => false,
+          "error"   => e.message,
+        }.to_json
+      end
+    end
+
+    # Save/update per-episode watching progress
+    put "/api/anime/episode_progress" do |env|
+      begin
+        username = get_username env
+        anime_id = env.params.json["anime_id"].as(String)
+        episode_id = env.params.json["episode_id"].as(String)
+        timestamp_raw = env.params.json["timestamp"]?
+        timestamp = timestamp_raw.is_a?(Float64) ? timestamp_raw : (timestamp_raw.is_a?(Int64) ? timestamp_raw.to_f : 0.0)
+        completed = env.params.json["completed"]?.try(&.as(Bool)) || false
+
+        Storage.default.save_anime_episode_progress username, anime_id, episode_id, timestamp, completed
+
+        send_json env, {
+          "success" => true,
+        }.to_json
+      rescue e
+        Logger.error e
+        send_json env, {
+          "success" => false,
+          "error"   => e.message,
+        }.to_json
+      end
+    end
+
+    # Get per-episode watching progress
+    get "/api/anime/episode_progress" do |env|
+      begin
+        username = get_username env
+        anime_id = env.params.query["anime_id"].as(String)
+        episode_id = env.params.query["episode_id"].as(String)
+
+        progress = Storage.default.get_anime_episode_progress username, anime_id, episode_id
         send_json env, {
           "success"  => true,
           "progress" => progress,
@@ -250,7 +333,6 @@ struct StreamRouter
       begin
         url = env.params.query["url"].as(String)
 
-        # Check proxy allowlist if configured
         unless proxy_allows?(url)
           env.response.status_code = 403
           env.response.content_type = "text/plain"
@@ -264,14 +346,14 @@ struct StreamRouter
                     HTTP::Headers.new
                   end
 
-        # Set a reasonable user-agent if none provided
         unless headers.has_key?("User-Agent")
           headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         end
 
-        # Check if this is an HLS playlist
         if url.ends_with?(".m3u8")
           StreamProxy.fetch_hls_playlist url, headers, env.response
+        elsif url.ends_with?(".ts") || url.ends_with?(".m4s")
+          StreamProxy.fetch_hls_segment url, headers, env.response
         else
           StreamProxy.fetch_stream url, headers, env.response
         end

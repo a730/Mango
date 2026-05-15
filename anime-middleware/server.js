@@ -76,7 +76,7 @@ async function resolveAnimeSources(episodeId) {
         format: s.file && s.file.includes('.m3u8') ? 'hls' : 'mp4'
       }));
       const subtitles = (decrypted.tracks || []).map(t => ({
-        file: t.file, label: t.label || 'English', kind: t.kind || 'captions'
+        file: t.file, label: t.label || 'English', lang: t.lang || 'en', kind: t.kind || 'captions'
       }));
       return { sources, subtitles };
     } catch (e) {
@@ -90,15 +90,48 @@ async function resolveAnimeSources(episodeId) {
 
 app.get('/api/search', async (req, res) => {
   try {
-    const { q } = req.query;
+    const { q, page = 1, limit = 20 } = req.query;
     if (!q) return res.json({ success: false, error: 'Missing query parameter "q"' });
-    const cacheKey = `search:${q}`;
+    const cacheKey = `search:${q}:${page}:${limit}`;
     const cachedData = cached(cacheKey);
     if (cachedData) return res.json({ success: true, results: cachedData });
     const results = await kai.search(q);
-    const list = (results.results || []).map(a => ({ id: a.id, title: a.title || '', cover_url: a.image || '' }));
+    const list = (results.results || []).map(a => ({
+      id: a.id,
+      title: a.title || '',
+      cover_url: a.image || '',
+      type: a.type || null,
+      status: a.status || null,
+      year: a.releaseDate || null,
+      genres: a.genres || [],
+    }));
     setCache(cacheKey, list);
-    res.json({ success: true, results: list });
+    res.json({ success: true, results: list, page: parseInt(page), limit: parseInt(limit) });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
+app.get('/api/metadata', async (req, res) => {
+  try {
+    const { source_id } = req.query;
+    if (!source_id) return res.json({ success: false, error: 'Missing query parameter "source_id"' });
+    const cacheKey = `metadata:${source_id}`;
+    const cachedData = cached(cacheKey);
+    if (cachedData) return res.json({ success: true, metadata: cachedData });
+    const info = await kai.fetchAnimeInfo(source_id);
+    const metadata = {
+      type: info.type || null,
+      status: info.status || null,
+      year: info.releaseDate || null,
+      genres: info.genres || [],
+      description: info.description || null,
+      totalEpisodes: info.totalEpisodes || null,
+      rating: info.rating || null,
+      duration: info.duration || null,
+    };
+    setCache(cacheKey, metadata);
+    res.json({ success: true, metadata });
   } catch (e) {
     res.json({ success: false, error: e.message });
   }
@@ -112,7 +145,13 @@ app.get('/api/episodes', async (req, res) => {
     const cachedData = cached(cacheKey);
     if (cachedData) return res.json({ success: true, episodes: cachedData });
     const info = await kai.fetchAnimeInfo(id);
-    const episodes = (info.episodes || []).map(ep => ({ id: ep.id, number: ep.number, title: ep.title || `Episode ${ep.number}`, thumbnail: '' }));
+    const episodes = (info.episodes || []).map(ep => ({
+      id: ep.id,
+      number: ep.number,
+      title: ep.title || `Episode ${ep.number}`,
+      thumbnail: ep.image || '',
+      duration: ep.duration || null,
+    }));
     setCache(cacheKey, episodes);
     res.json({ success: true, episodes });
   } catch (e) {

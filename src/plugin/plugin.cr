@@ -451,6 +451,17 @@ class Plugin
     raise Error.new e.message
   end
 
+  def get_anime_metadata(source_id : String)
+    ensure_capability! Capability::Anime
+    json = eval_json "getAnimeMetadata('#{source_id}')"
+    json
+  rescue e : Duktape::ReferenceError
+    # Metadata is optional
+    JSON.parse "{}"
+  rescue e
+    raise Error.new e.message
+  end
+
   def eval(str)
     @rt.eval str
   rescue e : Duktape::SyntaxError
@@ -460,7 +471,23 @@ class Plugin
   end
 
   private def eval_json(str)
-    JSON.parse eval(str).as String
+    result = eval(str)
+    case result
+    when String
+      JSON.parse result
+    when Array
+      JSON.parse result.to_json
+    when Hash
+      JSON.parse result.to_json
+    when Nil
+      JSON.parse "null"
+    when Bool
+      JSON.parse result.to_s
+    when Float64
+      JSON.parse result.to_s
+    else
+      JSON.parse result.to_s
+    end
   end
 
   private def eval_exists?(str) : Bool
