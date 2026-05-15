@@ -1,19 +1,19 @@
+# ZIMA OS compatible docker-compose
+# Copy this file to your app directory and adjust paths as needed.
+# Uses pinned image tags so you can roll back if an update breaks something.
+# Change the version tag (e.g. 0.27.0) to any released version.
+
 services:
   mango:
     container_name: mango
-    image: ${MANGO_IMAGE:-ghcr.io/a730/mango:latest}
-    # Pin to a specific version for stability:
-    # image: ghcr.io/a730/mango:0.27.0
-    build:
-      context: .
-      dockerfile: ./Dockerfile
+    image: ghcr.io/a730/mango:0.27.0
     ports:
-      - "${PORT:-9000}:9000"
+      - "9000:9000"
     volumes:
-      - ${MAIN_DIRECTORY_PATH:-./data/mango}:/home/mango/mango
-      - ${CONFIG_DIRECTORY_PATH:-./data/config}:/home/mango/.config/mango
+      - ./data/mango:/home/mango/mango
+      - ./data/config:/home/mango/.config/mango
     environment:
-      - PORT=${PORT:-9000}
+      - PORT=9000
     depends_on:
       - anime-middleware
     security_opt:
@@ -36,12 +36,7 @@ services:
 
   anime-middleware:
     container_name: anime-middleware
-    image: ${MIDDLEWARE_IMAGE:-ghcr.io/a730/mango-anime-middleware:latest}
-    # Pin to a specific version for stability:
-    # image: ghcr.io/a730/mango-anime-middleware:0.27.0
-    build:
-      context: ./anime-middleware
-      dockerfile: Dockerfile
+    image: ghcr.io/a730/mango-anime-middleware:0.27.0
     expose:
       - "3456"
     security_opt:

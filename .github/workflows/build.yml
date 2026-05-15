@@ -26,8 +26,3 @@ jobs:
       run: shards install
     - name: Build
       run: crystal build src/mango.cr --release --progress
-    - name: Upload binary
-      uses: actions/upload-artifact@v4
-      with:
-        name: mango
-        path: mango

@@ -17,7 +17,7 @@ RUN shards install
 # Build Mango binary
 RUN crystal build src/mango.cr --release --progress
 
-FROM alpine:latest
+FROM alpine:3.21
 
 RUN adduser -D mango
 WORKDIR /home/mango

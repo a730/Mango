@@ -103,13 +103,38 @@ patches for Crystal 1.16 compatibility. Other shards are fetched by
 
 ## Docker (GHCR)
 
-Pre-built images are available on [GitHub Container Registry](https://github.com/a730/Mango/pkgs/container/mango):
+Pre-built multi-arch images are available on [GitHub Container Registry](https://github.com/a730/Mango/pkgs/container/mango):
 
-- `ghcr.io/a730/mango:latest` — Mango server
-- `ghcr.io/a730/mango-anime-middleware:latest` — Anime streaming middleware
+- `ghcr.io/a730/mango:latest` — Mango server (linux/amd64, linux/arm64)
+- `ghcr.io/a730/mango-anime-middleware:latest` — Anime streaming middleware (linux/amd64, linux/arm64)
+
+### Versioned Images
+
+Use a pinned version tag for stability. Roll back by changing the tag:
+
+```bash
+docker pull ghcr.io/a730/mango:0.27.0
+docker pull ghcr.io/a730/mango-anime-middleware:0.27.0
+```
+
+Available tag formats: `0.27.0`, `0.27`, `0`, `latest`, `<sha-short>`.
 
 The docker-compose.yml pulls these by default. Images are automatically rebuilt
-on every push to `master`.
+on every push to `master` and on every release.
+
+### ZIMA OS
+
+Mango runs on [ZIMA OS](https://github.com/IceWhaleTech/ZimaOS) (x86-64). Use the
+provided `docker-compose.zima.yml` as a starting point:
+
+```bash
+cp docker-compose.zima.yml docker-compose.yml
+# Adjust volume paths to match your ZIMA OS data directories
+docker compose up -d
+```
+
+No special configuration is needed — containers run as non-root with minimal
+capabilities, which is compatible with ZIMA OS security defaults.
 
 ### Local Docker build
 

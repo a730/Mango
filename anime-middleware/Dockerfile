@@ -1,4 +1,4 @@
-FROM node:22-alpine
+FROM node:22.14-alpine3.21
 
 RUN adduser -D nodeuser
 WORKDIR /app
