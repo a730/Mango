@@ -20,6 +20,7 @@ RUN crystal build src/mango.cr --release --progress
 FROM alpine:3.21
 
 RUN adduser -D mango
+RUN apk add --no-cache libxml2 libarchive libgmp libpcre2-8 boehm-gc libgcc
 WORKDIR /home/mango
 
 COPY --from=builder /Mango/mango /usr/local/bin/mango
